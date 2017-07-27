@@ -44,7 +44,7 @@ public class TestStockDataService {
     }
     
     @Test
-    public void stessTestOneMillionElements() throws IOException {
+    public void stressTestOneMillionElements() throws IOException {
         Iterable<String> oneMillionElements = Iterables.limit(Iterables.cycle(inputFileContent), 1_000_000);
         Stream<String> hugeStream = StreamSupport.stream(oneMillionElements.spliterator(), false);
         List<DailyClosePrice> monthlyClosePrices = service.collectMonthlyClosePrices(hugeStream);
@@ -52,15 +52,17 @@ public class TestStockDataService {
     }
     
     @Test
-    public void stessTestOneMillionElementsParallel() throws IOException {
-        Iterable<String> oneMillionElements = Iterables.limit(Iterables.cycle(inputFileContent), 1_000_000);
-        Stream<String> hugeStream = StreamSupport.stream(oneMillionElements.spliterator(), true);
-        List<DailyClosePrice> monthlyClosePrices = service.collectMonthlyClosePrices(hugeStream);
+    public void stressTestOneMillionElementsParallel() throws IOException {
+        Stream<String> aggregatedStream = inputFileContent.parallelStream();
+        for (int i = 0; i < 250; ++i) {
+            aggregatedStream = Stream.concat(aggregatedStream, inputFileContent.parallelStream());
+        }
+        List<DailyClosePrice> monthlyClosePrices = service.collectMonthlyClosePrices(aggregatedStream);
         assertThat(copySorted(monthlyClosePrices), Matchers.contains(EXPECTED_RESULTS_IN_ORDER));
     }
     
     @Test
-    public void stessTestMultipleRuns() throws IOException {
+    public void stressTestMultipleRuns() throws IOException {
         for (int i = 0; i < 250; ++i) {
             assertNotNull(service.collectMonthlyClosePrices(inputFileContent.stream()));
         }
