@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.*;
 
 import static java.util.stream.Collector.Characteristics.CONCURRENT;
@@ -48,7 +49,7 @@ public class StockDataServiceImpl implements StockDataService {
     @Value
     private static class MonthyClosePrices {
         
-        TreeMap<YearMonth, DailyClosePrice> latestsPerMonth = new TreeMap<>();
+        Map<YearMonth, DailyClosePrice> latestsPerMonth = new ConcurrentHashMap<>();
         
         public MonthyClosePrices accumulate(DailyClosePrice newElement) {
             YearMonth key = YearMonth.from(newElement.getDate());
