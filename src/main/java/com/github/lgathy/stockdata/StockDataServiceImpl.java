@@ -37,38 +37,38 @@ public class StockDataServiceImpl implements StockDataService {
     
     public Collector<DailyClosePrice, ?, ? extends List<DailyClosePrice>> newMonthlyClosePricesCollector() {
         return Collector.of(
-            MonthyClosePrices::new,
-            MonthyClosePrices::accumulate,
-            MonthyClosePrices::combine,
-            MonthyClosePrices::copyValuesSorted,
+            MonthlyClosePrices::new,
+            MonthlyClosePrices::accumulate,
+            MonthlyClosePrices::combine,
+            MonthlyClosePrices::copyValuesSorted,
             CONCURRENT, UNORDERED);
     }
     
     @Value
-    private static class MonthyClosePrices {
+    private static class MonthlyClosePrices {
         
         Map<YearMonth, DailyClosePrice> latestsPerMonth = new ConcurrentHashMap<>();
         
-        public MonthyClosePrices accumulate(DailyClosePrice newElement) {
+        public MonthlyClosePrices accumulate(DailyClosePrice newElement) {
             YearMonth key = YearMonth.from(newElement.getDate());
             latestsPerMonth.compute(key, (ym, current) -> DATE_ORDER.max(current, newElement));
             return this;
         }
         
-        public MonthyClosePrices combine(MonthyClosePrices other) {
+        public MonthlyClosePrices combine(MonthlyClosePrices other) {
             if (other.size() > this.size()) {
                 // let's not do the hard work: it's faster to add the smaller map to the larger
                 return other.combine(this);
             }
             // let's make a copy of the our inner state first
-            MonthyClosePrices result = this.copy();
+            MonthlyClosePrices result = this.copy();
             // we just need to treat other's values as new elements:
             other.latestsPerMonth.values().forEach(result::accumulate);
             return result;
         }
         
-        private MonthyClosePrices copy() {
-            MonthyClosePrices copy = new MonthyClosePrices();
+        private MonthlyClosePrices copy() {
+            MonthlyClosePrices copy = new MonthlyClosePrices();
             copy.latestsPerMonth.putAll(this.latestsPerMonth);
             return copy;
         }
