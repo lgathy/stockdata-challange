@@ -2,12 +2,18 @@ package com.github.lgathy.stockdata;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.*;
+
+import static java.util.stream.Collector.Characteristics.CONCURRENT;
+import static java.util.stream.Collector.Characteristics.UNORDERED;
 
 public class StockDataServiceImpl implements StockDataService {
     
@@ -31,7 +37,48 @@ public class StockDataServiceImpl implements StockDataService {
     }
     
     public Collector<DailyClosePrice, ?, ? extends List<DailyClosePrice>> newMonthlyClosePricesCollector() {
-        return ImmutableList.toImmutableList(); // TODO implement
+        return Collector.of(
+            MonthyClosePrices::new,
+            MonthyClosePrices::accumulate,
+            MonthyClosePrices::combine,
+            MonthyClosePrices::copyValues,
+            CONCURRENT, UNORDERED);
+    }
+    
+    @Value
+    private static class MonthyClosePrices {
+        
+        TreeMap<YearMonth, DailyClosePrice> latestsPerMonth = new TreeMap<>();
+        
+        public MonthyClosePrices accumulate(DailyClosePrice newElement) {
+            YearMonth key = YearMonth.from(newElement.getDate());
+            latestsPerMonth.compute(key, (ym, current) -> DATE_ORDER.max(current, newElement));
+            return this;
+        }
+        
+        public MonthyClosePrices combine(MonthyClosePrices other) {
+            if (other.size() > this.size()) {
+                // let's not do the hard work: it's faster to add the smaller map to the larger
+                return other.combine(this);
+            }
+            // let's make a copy of the our inner state first
+            MonthyClosePrices result = this.copy();
+            // we just need to treat other's values as new elements:
+            other.latestsPerMonth.values().forEach(result::accumulate);
+            return result;
+        }
+        
+        private MonthyClosePrices copy() {
+            MonthyClosePrices copy = new MonthyClosePrices();
+            copy.latestsPerMonth.putAll(this.latestsPerMonth);
+            return copy;
+        }
+        
+        private int size() { return latestsPerMonth.size(); }
+        
+        public ImmutableList<DailyClosePrice> copyValues() {
+            return ImmutableList.copyOf(latestsPerMonth.values());
+        }
     }
     
     static final Splitter CSV_SPLITTER = Splitter.on(',');
@@ -41,5 +88,7 @@ public class StockDataServiceImpl implements StockDataService {
     static final int DATE_POS = 0;
     
     static final int CLOSE_PRICE_POS = 4;
+    
+    static final Ordering<DailyClosePrice> DATE_ORDER = Ordering.from(Comparator.comparing(DailyClosePrice::getDate)).nullsFirst();
     
 }

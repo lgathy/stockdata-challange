@@ -14,4 +14,14 @@ public class DailyClosePrice {
     
     private BigDecimal close;
     
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        
+        DailyClosePrice that = (DailyClosePrice) o;
+        
+        if (date != null ? !date.equals(that.date) : that.date != null) return false;
+        return close != null ? close.compareTo(that.close) == 0 : that.close == null;
+    }
+    
 }
