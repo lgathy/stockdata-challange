@@ -8,13 +8,11 @@ import lombok.Value;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.*;
 
-import static java.util.stream.Collector.Characteristics.CONCURRENT;
-import static java.util.stream.Collector.Characteristics.UNORDERED;
+import static java.util.stream.Collector.Characteristics.*;
 
 public class StockDataServiceImpl implements StockDataService {
     
@@ -42,7 +40,7 @@ public class StockDataServiceImpl implements StockDataService {
             MonthyClosePrices::new,
             MonthyClosePrices::accumulate,
             MonthyClosePrices::combine,
-            MonthyClosePrices::copyValues,
+            MonthyClosePrices::copyValuesSorted,
             CONCURRENT, UNORDERED);
     }
     
@@ -76,15 +74,17 @@ public class StockDataServiceImpl implements StockDataService {
         }
         
         private int size() { return latestsPerMonth.size(); }
-        
+    
         public ImmutableList<DailyClosePrice> copyValues() {
             return ImmutableList.copyOf(latestsPerMonth.values());
+        }
+    
+        public ImmutableList<DailyClosePrice> copyValuesSorted() {
+            return ImmutableList.sortedCopyOf(DATE_ORDER, latestsPerMonth.values());
         }
     }
     
     static final Splitter CSV_SPLITTER = Splitter.on(',');
-    
-    static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d-MMM-yy", Locale.US);
     
     static final int DATE_POS = 0;
     
