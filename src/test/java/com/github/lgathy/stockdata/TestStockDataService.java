@@ -1,7 +1,6 @@
 package com.github.lgathy.stockdata;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -11,6 +10,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.*;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -21,13 +21,16 @@ public class TestStockDataService {
     
     @Before
     public void setup() {
-        service = input -> ImmutableList.of(); // TODO temp dummy implementation
+        service = new StockDataServiceImpl();
     }
     
     @Test
     public void processTestdata() throws IOException {
         List<String> inputLines = Resources.readLines(getClass().getResource("/testdata.csv"), Charsets.UTF_8);
-        List<DailyClosePrice> monthlyClosePrices = service.collectMonthlyClosePrices(inputLines.stream());
+        Stream<String> inputStream = inputLines
+            .stream()
+            .skip(1L); // the purpose is to ignore the header line placed in the testfile
+        List<DailyClosePrice> monthlyClosePrices = service.collectMonthlyClosePrices(inputStream);
         assertNotNull("monthlyClosePrices", monthlyClosePrices);
         ArrayList<DailyClosePrice> sortedResults = new ArrayList<>(monthlyClosePrices);
         Collections.sort(sortedResults, Comparator.comparing(DailyClosePrice::getDate));
